@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ps" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#072640">
+<title>Ishaqzada Shop</title>
+<style>
+*{box-sizing:border-box}:root{--bg:#08060d;--panel:#171020;--gold:#e5b84b;--gold2:#ffda76;--text:#fff;--muted:#b9afc7;--green:#25D366}
+html,body{margin:0;background:radial-gradient(circle at top,#241332,#0c0812 38%,#07050b);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}body{min-height:100vh}
+header{position:sticky;top:0;z-index:30;background:rgba(8,6,13,.94);backdrop-filter:blur(14px);border-bottom:1px solid rgba(229,184,75,.35)}
+.brand{max-width:1100px;margin:auto;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:11px;text-align:center}.brand img{width:58px;height:58px;border-radius:16px;object-fit:cover;border:1px solid var(--gold)}.brand h1{font-size:18px;margin:0;color:var(--gold2)}.brand p{margin:3px 0 0;color:#ddd0e9;font-size:12px}
+main,.wrap{max-width:1100px;margin:auto;padding:15px}.hero{text-align:center;padding:26px 16px;border-radius:26px;background:linear-gradient(145deg,#2a1639,#120c1b 65%,#09070e);border:1px solid rgba(229,184,75,.38);box-shadow:0 15px 45px rgba(0,0,0,.32)}.hero img{width:105px;height:105px;border-radius:24px;object-fit:cover;border:2px solid var(--gold)}.hero h2{font-size:25px;margin:12px 0 5px}.hero p{color:var(--gold2);margin:0}
+input,select,textarea{width:100%;background:#171020;color:#fff;border:1px solid #49365d;border-radius:15px;padding:13px 14px;font-size:16px;outline:none}.categories,.category-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.category,.cat-card{overflow:hidden;min-height:128px;border-radius:20px;background:linear-gradient(145deg,#25172f,#120d19);border:1px solid rgba(229,184,75,.28)}.category img,.cat-card img{width:100%;height:92px;object-fit:cover}.category b,.cat-card b{display:block;padding:10px;text-align:center;color:var(--gold2)}
+.products,.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.product,.product-card{overflow:hidden;border-radius:20px;background:linear-gradient(155deg,#1d1327,#100b17);border:1px solid rgba(229,184,75,.24);box-shadow:0 10px 28px rgba(0,0,0,.28)}.product img,.product-card img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff}.product-body,.product-card>div{padding:12px}.price{font-size:18px;font-weight:900;color:var(--gold2)}
+button,.btn{border:0;border-radius:14px;padding:12px 14px;font-weight:800;cursor:pointer}.gold,.primary{background:linear-gradient(135deg,#f1c85c,#c99627);color:#130d19}.whatsapp,.wa{background:var(--green);color:#07150c}.card,.panel{background:linear-gradient(145deg,#1c1326,#100b17);border:1px solid rgba(229,184,75,.25);border-radius:20px;padding:15px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:80;display:none;align-items:center;justify-content:center;padding:15px}.modal.on{display:flex}.modal .card{width:min(560px,100%);max-height:90vh;overflow:auto}.muted{color:var(--muted)}.hidden{display:none!important}.footer,footer{text-align:center;color:#a99db7;padding:28px 15px}
+@media(min-width:760px){.categories,.category-grid,.products,.product-grid{grid-template-columns:repeat(4,1fr)}}
+
+.top-actions{display:flex;gap:8px;margin:14px 0}.top-actions button{flex:1}
+.category-grid{margin:12px 0 18px}.cat-card{cursor:pointer;position:relative}.cat-card img{display:block}.cat-card .catname{padding:10px;text-align:center;font-weight:900;color:var(--gold2)}
+.student-panel{margin:15px 0}.student-panel h3{margin-top:0;color:var(--gold2)}
+.manage-list{display:grid;gap:10px;margin-top:12px}.manage-item{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #49365d;border-radius:15px;background:#100b17}.manage-item img{width:64px;height:64px;object-fit:cover;border-radius:12px}.manage-item .grow{flex:1}.small{font-size:12px;color:var(--muted)}
+.actions{display:flex;gap:7px;flex-wrap:wrap}.navy{background:#342345;color:#fff}.danger{background:#6e2733;color:#fff}.full{width:100%}.box{width:min(560px,100%);max-height:90vh;overflow:auto;background:linear-gradient(145deg,#1c1326,#100b17);border:1px solid rgba(229,184,75,.3);border-radius:20px;padding:15px}.head{display:flex;justify-content:space-between;align-items:center;gap:10px}.summary{padding:12px;margin:8px 0;background:#120c1b;border-radius:14px}.toast{position:fixed;left:50%;bottom:25px;transform:translateX(-50%);background:#21162e;border:1px solid var(--gold);padding:11px 15px;border-radius:14px;z-index:100;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1}
+label{display:block;margin:10px 0 5px;font-weight:800}
+</style>
+</head>
+<body>
+<header><div class="brand"><img src="shop-logo.jpg" decoding="async" fetchpriority="high" alt="Ishaqzada"><h1>اسحاقزاده آنلاین دوکان</h1><p>Ishaqzada Fashion Company</p></div></header>
+<main class="wrap">
+  <section class="hero"><img src="shop-logo.jpg" decoding="async" alt="Ishaqzada Fashion Company"><h2>زموږ اجناس</h2><p>خپل جنس انتخاب کړئ او آرډر مستقیم د هغه جنس مسئول شاګرد ته ولېږئ.</p></section>
+  <div class="top-actions"><button class="gold" onclick="toggleStudent()">➕ خپل جنس پورته کړه</button><button class="navy" onclick="showAll()">🛍️ ټول اجناس</button></div>
+  <section id="studentPanel" class="card student-panel hidden">
+    <h3>د شاګرد د جنسونو برخه</h3>
+    <div id="studentIdentity">
+      <label>ستاسو نوم<input id="sName" placeholder="خپل نوم ولیکئ"></label>
+      <label>WhatsApp نمبر<input id="sWhatsapp" inputmode="tel" placeholder="07xxxxxxxx"></label>
+      <button class="gold full" onclick="enterStudent()">دوام ورکړه</button>
+      <div class="small" style="margin-top:8px">ایمیل او پاسورډ ته اړتیا نشته. نوم او WhatsApp د جنس سره ثبتېږي.</div>
+    </div>
+    <div id="studentManager" class="hidden">
+      <div id="studentWho" class="summary"></div>
+      <form onsubmit="saveStudentProduct(event)">
+        <input id="editProductId" type="hidden">
+        <label>د جنس نوم<input id="pName" required></label>
+        <label>کټګوري<select id="pCategory" required></select></label>
+        <label>قیمت (AFN)<input id="pPrice" type="number" min="0" required></label>
+        <label>د جنس عکس<input id="pImageFile" type="file" accept="image/*" required></label>
+        <label>لنډ معلومات<textarea id="pDescription"></textarea></label>
+        <button class="gold full">جنس ثبت کړه</button>
+      </form>
+      <div id="myProducts" class="manage-list"></div>
+    </div>
+  </section>
+  <div class="section-title"><h3>کټګورۍ</h3><small id="filterLabel">ټولې</small></div>
+  <div id="categories" class="category-grid"></div>
+  <div class="section-title"><h3>اجناس</h3></div>
+  <div id="products" class="products"></div>
+  <div class="footer">د اسحاقزاده فیشن شرکت آنلاین دوکان</div>
+</main>
+<div class="modal" id="orderModal"><div class="box"><div class="head"><h3>آرډر ثبتول</h3><button class="navy" type="button" onclick="closeOrder()">✕</button></div><div id="orderSummary" class="summary"></div><form onsubmit="submitOrder(event)"><label>نوم<input id="cName" required></label><label>موبایل<input id="cPhone" inputmode="tel" required></label><label>ولایت<select id="cProvince" required></select></label><label>ولسوالي / ناحیه<input id="cDistrict" required></label><label>بشپړ ادرس<textarea id="cAddress" required></textarea></label><label>تعداد<input id="cQty" type="number" min="1" value="1" required></label><button class="gold full" style="margin-top:12px">آرډر ثبت او WhatsApp ته واستوه</button></form></div></div>
+<div id="toast" class="toast"></div>
+<script defer src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
+<script>
+window.addEventListener("DOMContentLoaded",()=>{
+const firebaseConfig={apiKey:"AIzaSyBvD5nAxa53PCW-Oe55Yo5VSfrHFsPFNws",authDomain:"ishaqzada-distribution-system.firebaseapp.com",projectId:"ishaqzada-distribution-system",storageBucket:"ishaqzada-distribution-system.firebasestorage.app",messagingSenderId:"1002618741797",appId:"1:1002618741797:web:19d2ad89042eb26c148bcc",measurementId:"G-8SCGTBFGDX"};
+firebase.initializeApp(firebaseConfig);const cloudDB=firebase.firestore(),ref=cloudDB.collection("distribution").doc("main");
+const P=["بدخشان","بادغیس","بغلان","بلخ","بامیان","دایکندي","فراه","فاریاب","غزني","غور","هلمند","هرات","جوزجان","کابل","کندهار","کاپیسا","خوست","کنړ","کندز","لغمان","لوګر","ننګرهار","نیمروز","نورستان","پکتیا","پکتیکا","پنجشیر","پروان","سمنګان","سرپل","تخار","اروزګان","میدان وردګ","زابل"];
+let products=[],selected=null,currentCategory="all";
+let categories=[
+{id:"cosmetics",name:"کاسمیټکس",image:"https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=600&q=65"},
+{id:"medicine",name:"درمل",image:"https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=65"},
+{id:"weight",name:"د وزن محصولات",image:"https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&w=600&q=65"},
+{id:"hair",name:"ویښتان",image:"https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=600&q=65"},
+{id:"skin",name:"پوستکی",image:"https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=65"},
+{id:"pain",name:"درد او هډوکي",image:"https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=600&q=65"},
+{id:"other",name:"نور",image:"shop-logo.jpg"}];
+let student={name:"",whatsapp:""};const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
+function fillP(){const s=document.getElementById("cProvince");P.forEach(p=>s.add(new Option(p,p)))}
+function renderCategories(){
+ const box=document.getElementById("categories");
+ box.innerHTML=categories.map(c=>`<div class="cat-card" onclick="filterCategory('${c.id}')"><img loading="lazy" src="${c.image}" alt=""><div class="catname">${esc(c.name)}</div></div>`).join("");
+ const sel=document.getElementById("pCategory"); if(sel) sel.innerHTML=categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+}
+function filterCategory(id){currentCategory=id;document.getElementById("filterLabel").textContent=categories.find(c=>c.id===id)?.name||"ټولې";render()}
+function showAll(){currentCategory="all";document.getElementById("filterLabel").textContent="ټولې";render()}
+function render(){const box=document.getElementById("products");let a=products.filter(p=>p.active!==false);if(currentCategory!=="all")a=a.filter(p=>(p.category||"other")===currentCategory);box.innerHTML=a.length?a.map(p=>`<article class="product"><img loading="lazy" src="${p.image}" alt=""><div class="product-body"><h3>${esc(p.name)}</h3><div class="price">${(+p.price).toLocaleString()} AFN</div><div class="small">${esc(categories.find(c=>c.id===(p.category||"other"))?.name||"نور")}</div><div class="desc">${esc(p.description||"")}</div><div class="actions"><button class="gold" onclick="openOrder('${p.id}')">آرډر وکړه</button><button class="whatsapp" onclick="quickWhatsapp('${p.id}')">WhatsApp</button></div></div></article>`).join(""):'<div class="card" style="grid-column:1/-1;text-align:center">تر اوسه جنس نه دی پورته شوی.</div>';renderMyProducts()}
+function cleanWhatsApp(n){let x=String(n||"").replace(/\D/g,"");if(x.startsWith("0"))x="93"+x.slice(1);if(!x.startsWith("93"))x="93"+x;return x}
+function quickWhatsapp(id){const p=products.find(x=>x.id===id);if(!p)return;const m=`سلام، زه د «${p.name}» په اړه معلومات غواړم.`;location.href=`https://wa.me/${cleanWhatsApp(p.whatsapp)}?text=${encodeURIComponent(m)}`}
+function openOrder(id){selected=products.find(x=>x.id===id);if(!selected)return;document.getElementById("orderSummary").innerHTML=`<b>${esc(selected.name)}</b><br><span class="price">${(+selected.price).toLocaleString()} AFN</span><div class="desc">مسئول: ${esc(selected.agentName||"")}</div>`;document.getElementById("orderModal").classList.add("on")}
+function closeOrder(){document.getElementById("orderModal").classList.remove("on");selected=null}
+async function submitOrder(e){e.preventDefault();if(!selected)return;const qty=Math.max(1,+document.getElementById("cQty").value||1),order={id:"SHOP-"+Date.now(),productId:selected.id,productName:selected.name,unitPrice:+selected.price,qty,total:(+selected.price)*qty,agentId:selected.agentId||"",agentName:selected.agentName||"",whatsapp:selected.whatsapp||"",customerName:document.getElementById("cName").value.trim(),customerPhone:document.getElementById("cPhone").value.trim(),province:document.getElementById("cProvince").value,district:document.getElementById("cDistrict").value.trim(),address:document.getElementById("cAddress").value.trim(),createdAt:new Date().toISOString(),status:"new"};try{await ref.update({shopOrders:firebase.firestore.FieldValue.arrayUnion(order)})}catch(err){console.error(err);toast("آرډر Database ته ثبت نه شو");return}const msg=`نوی آرډر
+آرډر: ${order.id}
+جنس: ${order.productName}
+تعداد: ${order.qty}
+ټول قیمت: ${order.total.toLocaleString()} AFN
+مشتری: ${order.customerName}
+موبایل: ${order.customerPhone}
+ولایت: ${order.province}
+ولسوالي/ناحیه: ${order.district}
+ادرس: ${order.address}`;const wa=`https://wa.me/${cleanWhatsApp(order.whatsapp)}?text=${encodeURIComponent(msg)}`;toast("آرډر ثبت شو؛ WhatsApp خلاصیږي");setTimeout(()=>location.href=wa,350)}
+
+function toggleStudent(){document.getElementById("studentPanel").classList.toggle("hidden");document.getElementById("studentPanel").scrollIntoView({behavior:"smooth"})}
+function enterStudent(){
+ const name=document.getElementById("sName").value.trim(),whatsapp=document.getElementById("sWhatsapp").value.trim();
+ if(!name||!whatsapp){toast("نوم او WhatsApp ولیکئ");return}
+ student={name,whatsapp};localStorage.setItem("shopStudent",JSON.stringify(student));
+ document.getElementById("studentIdentity").classList.add("hidden");document.getElementById("studentManager").classList.remove("hidden");
+ document.getElementById("studentWho").innerHTML=`<b>${esc(name)}</b><br><span class="small">${esc(whatsapp)}</span>`;renderMyProducts()
+}
+function renderMyProducts(){
+ const box=document.getElementById("myProducts");if(!box||!student.whatsapp)return;
+ const me=cleanWhatsApp(student.whatsapp),a=products.filter(p=>cleanWhatsApp(p.whatsapp)===me);
+ box.innerHTML=a.length?a.map(p=>`<div class="manage-item"><img src="${p.image}"><div class="grow"><b>${esc(p.name)}</b><div class="small">${(+p.price).toLocaleString()} AFN</div></div><div class="actions"><button class="navy" onclick="editMine('${p.id}')">Edit</button></div></div>`).join(""):'<div class="small">تاسو تر اوسه جنس نه دی پورته کړی.</div>'
+}
+function fileToDataURL(file){return new Promise((resolve,reject)=>{const img=new Image(),r=new FileReader();r.onload=e=>img.src=e.target.result;r.onerror=reject;img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",.72))};r.readAsDataURL(file)})}
+async function saveStudentProduct(e){
+ e.preventDefault();if(!student.name||!student.whatsapp)return;
+ const id=document.getElementById("editProductId").value||("P-"+Date.now()),existing=products.find(p=>p.id===id);
+ if(existing&&cleanWhatsApp(existing.whatsapp)!==cleanWhatsApp(student.whatsapp)){toast("دا ستاسو جنس نه دی");return}
+ const f=document.getElementById("pImageFile").files[0];let image=existing?.image||"";
+ if(f)image=await fileToDataURL(f);if(!image){toast("د جنس عکس انتخاب کړئ");return}
+ const item={id,name:document.getElementById("pName").value.trim(),category:document.getElementById("pCategory").value,price:+document.getElementById("pPrice").value||0,image,description:document.getElementById("pDescription").value.trim(),agentName:student.name,whatsapp:student.whatsapp,active:true,updatedAt:new Date().toISOString()};
+ let next=products.filter(p=>p.id!==id);next.push(item);
+ try{await ref.update({products:next});toast("جنس ثبت شو");e.target.reset();document.getElementById("editProductId").value="";document.getElementById("pImageFile").required=true}catch(err){console.error(err);toast("جنس Database ته ثبت نه شو")}
+}
+function editMine(id){
+ const p=products.find(x=>x.id===id);if(!p||cleanWhatsApp(p.whatsapp)!==cleanWhatsApp(student.whatsapp)){toast("دا ستاسو جنس نه دی");return}
+ document.getElementById("editProductId").value=p.id;document.getElementById("pName").value=p.name||"";document.getElementById("pCategory").value=p.category||"other";document.getElementById("pPrice").value=p.price||0;document.getElementById("pDescription").value=p.description||"";document.getElementById("pImageFile").required=false;document.getElementById("studentPanel").scrollIntoView({behavior:"smooth"})
+}
+
+renderCategories();fillP();const savedStudent=localStorage.getItem("shopStudent");if(savedStudent){try{student=JSON.parse(savedStudent)||student;if(student.name&&student.whatsapp){document.getElementById("sName").value=student.name;document.getElementById("sWhatsapp").value=student.whatsapp}}catch(e){}}
+ref.onSnapshot(d=>{const x=d.data()||{};products=Array.isArray(x.products)?x.products:[];render()},err=>{console.error(err);document.getElementById("products").innerHTML='<div class="empty" style="grid-column:1/-1">د دوکان معلومات نه خلاصیږي.</div>'});
+});
+</script>
+</body></html>
