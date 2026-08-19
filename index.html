@@ -828,40 +828,80 @@ function createUserShipment(e){
     go("home");
   }
 }
+function drawAdminSentGoods(){
+  const box=document.getElementById("adminSentGoodsList"); if(!box)return;
+  const list=[...(db.shipments||[])].sort((a,b)=>new Date(b.createdAt||b.date||0)-new Date(a.createdAt||a.date||0));
+  if(!list.length){
+    box.innerHTML='<div class="card empty">تر اوسه هېڅ ثبت شوی لېږد نه ښکاري.</div>';
+    return;
+  }
+  box.innerHTML=list.map(sh=>{
+    const u=(db.users||[]).find(x=>x.id===sh.agentId);
+    const items=(sh.items||[]).map(i=>`${esc(i.name||"جنس")} — ${Number(i.qty)||0} دانې`).join("<br>");
+    const st=sh.confirmed?'<span class="pill status-ok">ترلاسه شوی</span>':'<span class="pill status-pending">د تایید انتظار</span>';
+    return `<div class="card" style="margin-bottom:12px"><div class="row"><b>${esc(u?u.name:"نامعلوم کس")}</b>${st}</div><div class="muted">لېږونکی: ${esc(sh.senderName||"Super Admin")}</div><div class="muted">${esc(sh.province||"")} • ${esc(sh.date||"")}</div><div style="margin-top:10px">${items||"—"}</div>${sh.note?`<div class="muted" style="margin-top:8px">یادښت: ${esc(sh.note)}</div>`:""}</div>`;
+  }).join("");
+}
+
 async function renderAdminSentGoods(){
   const box=document.getElementById("adminSentGoodsList"); if(!box)return;
-  // Always refresh this report directly from Firebase so the Super Admin
-  // sees goods sent from every phone, not only this phone's local cache.
+  drawAdminSentGoods();
   try{
-    const snap=await cloudStateRef.get();
-    if(snap.exists){
+    const snap=await Promise.race([
+      cloudStateRef.get(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("cloud-timeout")),5000))
+    ]);
+    if(snap && snap.exists){
       db=mergeCloudDB(snap.data());
       localStorage.setItem(K,JSON.stringify(db));
+      drawAdminSentGoods();
     }
   }catch(err){
     console.error("Sent goods refresh error:",err);
   }
-  const list=[...(db.shipments||[])].sort((a,b)=>
-    new Date(b.createdAt||b.date||0)-new Date(a.createdAt||a.date||0)
-  );
-  if(!list.length){box.innerHTML='<div class="card empty">تر اوسه هېڅ جنس نه دی لېږل شوی.</div>';return;}
-  box.innerHTML=list.map(sh=>{
-    const u=(db.users||[]).find(x=>x.id===sh.agentId);
-    const items=(sh.items||[]).map(i=>`${esc(i.name)} — ${Number(i.qty)||0} دانې`).join("<br>");
-    const st=sh.confirmed?'<span class="pill status-ok">ترلاسه شوی</span>':'<span class="pill status-pending">د تایید انتظار</span>';
-    return `<div class="card" style="margin-bottom:12px"><div class="row"><b>${esc(u?u.name:"نامعلوم کس")}</b>${st}</div><div class="muted">لېږونکی: ${esc(sh.senderName||"Super Admin")}</div><div class="muted">${esc(sh.province||"")} • ${esc(sh.date||"")}</div><div style="margin-top:10px">${items}</div>${sh.note?`<div class="muted" style="margin-top:8px">یادښت: ${esc(sh.note)}</div>`:""}</div>`;
-  }).join("");
 }
 function refreshShipAgents(){
   const p=document.getElementById("shipProvince").value,s=document.getElementById("shipAgent");const a=db.users.filter(u=>u.approved&&u.province===p&&(u.role==="delivery"||u.role==="both"));s.innerHTML="";
   if(!a.length){s.add(new Option("په دې ولایت کې Delivery Agent نشته",""));s.disabled=true}else{a.forEach(u=>s.add(new Option(`${u.name} — ${roleName(u.role)}`,u.id)));s.disabled=false}
 }
 function addShipItem(){const d=document.createElement("div");d.className="item-card";d.innerHTML=`<label>د جنس نوم<input class="si-name" required></label><label>تعداد<input class="si-qty" type="number" min="1" required></label><button type="button" class="danger" onclick="this.parentElement.remove()">حذف</button>`;document.getElementById("shipItems").appendChild(d)}
-function createShipment(e){
-  e.preventDefault();const aid=document.getElementById("shipAgent").value;if(!aid)return toast("Delivery Agent انتخاب کړئ");
-  const items=[...document.querySelectorAll("#shipItems .item-card")].map(d=>({name:d.querySelector(".si-name").value.trim(),qty:+d.querySelector(".si-qty").value}));
-  db.shipments.push({id:"SHP-"+String(db.seq++).padStart(5,"0"),senderId:"SUPER_ADMIN",senderName:"Super Admin",agentId:aid,province:document.getElementById("shipProvince").value,items,date:document.getElementById("shipDate").value,note:document.getElementById("shipNote").value,confirmed:false,createdAt:new Date().toISOString()});
-  save();document.getElementById("shipItems").innerHTML="";addShipItem();renderAdminSentGoods();toast("جنس ثبت او Delivery Agent ته واستول شو")
+async function createShipment(e){
+  e.preventDefault();
+  const aid=document.getElementById("shipAgent").value;
+  if(!aid)return toast("Delivery Agent انتخاب کړئ");
+  const items=[...document.querySelectorAll("#shipItems .item-card")].map(d=>({
+    name:d.querySelector(".si-name").value.trim(),
+    qty:+d.querySelector(".si-qty").value
+  }));
+  if(!items.length || items.some(i=>!i.name || i.qty<1))return toast("جنس او تعداد سم ولیکئ");
+
+  const sh={
+    id:"SHP-"+String(db.seq++).padStart(5,"0"),
+    senderId:"SUPER_ADMIN",
+    senderName:"Super Admin",
+    agentId:aid,
+    province:document.getElementById("shipProvince").value,
+    items,
+    date:document.getElementById("shipDate").value,
+    note:document.getElementById("shipNote").value,
+    confirmed:false,
+    createdAt:new Date().toISOString()
+  };
+
+  db.shipments.push(sh);
+  localStorage.setItem(K,JSON.stringify(db));
+
+  try{
+    await cloudStateRef.set(JSON.parse(JSON.stringify(db)));
+    cloudReady=true;
+  }catch(err){
+    console.error("Shipment cloud save error:",err);
+    save();
+  }
+
+  document.getElementById("shipItems").innerHTML="";
+  addShipItem();
+  toast("جنس ثبت او Delivery Agent ته واستول شو");
 }
 
 function renderStudentPreview(){
