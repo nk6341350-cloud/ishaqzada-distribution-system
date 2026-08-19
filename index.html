@@ -847,12 +847,35 @@ function drawAdminSentGoods(){
     box.innerHTML='<div class="card empty">تر اوسه هېڅ ثبت شوی لېږد نه ښکاري.</div>';
     return;
   }
-  box.innerHTML=list.map(sh=>{
+
+  // د هر Delivery Agent اوسنۍ پاتې موجودي.
+  // getStock() تایید شوي لېږدونه جمع کوي او هر تسلیم شوی/خرڅ شوی جنس ترې کموي.
+  const agentIds=[...new Set(list.map(sh=>sh.agentId).filter(Boolean))];
+  const stockSummary=agentIds.map(uid=>{
+    const u=(db.users||[]).find(x=>x.id===uid);
+    const stock=getStock(uid);
+    const productNames=[...new Set(
+      list.filter(sh=>sh.agentId===uid && sh.confirmed)
+          .flatMap(sh=>(sh.items||[]).map(i=>i.name).filter(Boolean))
+    )];
+    const rows=productNames.length
+      ? productNames.map(name=>`<div class="row"><b>${esc(name)}</b><span><strong>${Math.max(0,Number(stock[name])||0)}</strong> دانې پاته</span></div>`).join("")
+      : '<div class="empty">تر اوسه تایید شوې موجودي نشته.</div>';
+    return `<div class="card" style="margin-bottom:12px"><h3 style="margin-top:0">${esc(u?u.name:"نامعلوم کس")} — اوسنۍ پاتې موجودي</h3>${rows}</div>`;
+  }).join("");
+
+  const history=list.map(sh=>{
     const u=(db.users||[]).find(x=>x.id===sh.agentId);
-    const items=(sh.items||[]).map(i=>`${esc(i.name||"جنس")} — ${Number(i.qty)||0} دانې`).join("<br>");
+    const stock=getStock(sh.agentId);
+    const items=(sh.items||[]).map(i=>{
+      const remain=Math.max(0,Number(stock[i.name])||0);
+      return `<div class="row"><span>${esc(i.name||"جنس")} — لېږل شوي ${Number(i.qty)||0}</span><b>${remain} دانې پاته</b></div>`;
+    }).join("");
     const st=sh.confirmed?'<span class="pill status-ok">ترلاسه شوی</span>':'<span class="pill status-pending">د تایید انتظار</span>';
     return `<div class="card" style="margin-bottom:12px"><div class="row"><b>${esc(u?u.name:"نامعلوم کس")}</b>${st}</div><div class="muted">لېږونکی: ${esc(sh.senderName||"Super Admin")}</div><div class="muted">${esc(sh.province||"")} • ${esc(sh.date||"")}</div><div style="margin-top:10px">${items||"—"}</div>${sh.note?`<div class="muted" style="margin-top:8px">یادښت: ${esc(sh.note)}</div>`:""}</div>`;
   }).join("");
+
+  box.innerHTML=stockSummary+history;
 }
 
 async function renderAdminSentGoods(){
