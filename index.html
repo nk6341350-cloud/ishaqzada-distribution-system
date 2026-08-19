@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#072640">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Ishaqzada">
-<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=2">
-<link rel="manifest" href="./manifest.webmanifest?v=2">
+<meta name="apple-mobile-web-app-title" content="Ishaqzada Distribution System">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Ishaqzada Distribution System</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;padding:0;background:#f7f2e8;color:#0b2741;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
@@ -60,7 +60,6 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
 
 
 </style>
-<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=2">
 </head>
 <body>
 <header>
@@ -185,6 +184,18 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
       <label>یادښت<input id="userShipNote"></label>
       <button class="gold full">آرډر ثبت او Delivery ته ولېږه</button>
     </form>
+  </section>
+
+  <section id="weeklyReport" class="section">
+    <div class="head"><h2>📊 هفتني راپورونه</h2><button class="soft" onclick="go('home')">بېرته</button></div>
+    <div class="note">هره هفته له شنبې سهار څخه تر پنجشنبې ماښام پورې جلا حسابېږي. پخواني راپورونه دایمي پاتې کېږي.</div>
+    <div id="weeklyReportView"></div>
+  </section>
+
+  <section id="adminWeeklyReports" class="section">
+    <div class="head"><h2>📊 د ټولو هفتني راپورونه</h2><button class="soft" onclick="go('admin')">بېرته</button></div>
+    <div class="note">دلته د هر کس د هرې هفتې راپور جلا جلا ښکاري.</div>
+    <div id="adminWeeklyReportsView"></div>
   </section>
 
   <section id="admin" class="section">
@@ -408,10 +419,11 @@ function renderHome(){
       ["👥","ټول کسان","Agents","adminAgents"],
       ["👤","د شاګرد صفحه وګوره","Preview","studentPreview"],
       ["💰","د ټولو حساب","کمېشن","adminAccounts"],
+      ["📊","هفتني راپورونه","د ټولو کسانو","adminWeeklyReports"],
       ["🚪","مالک وتل","Session ختمول","logout"]
     ];
   }else{
-    a=[["👤","زما حساب",u.name+" — "+roleName(u.role),"commission"]];
+    a=[["👤","زما حساب",u.name+" — "+roleName(u.role),"commission"],["📊","زما هفتني راپورونه","شنبه تر پنجشنبې","weeklyReport"]];
     if(canOrder()) a.push(["📝","آرډر لېږل","Order Agent","order"]);
     if(canDeliver()){
       a.push(["📥","آرډر راتلل","Delivery Agent","delivery"]);
@@ -429,6 +441,8 @@ function renderSection(id){
   if(id==="order"){const u=currentUser();document.getElementById("orderAgentName").value=u?.name||"";document.getElementById("orderAgentProvince").value=u?.province||"";if(!document.querySelector("#orderItems .item-card"))addOrderItem();refreshDeliveryChoices()}
   if(id==="delivery")renderDelivery();
   if(id==="commission")renderCommission();
+  if(id==="weeklyReport")renderWeeklyReport();
+  if(id==="adminWeeklyReports")renderAdminWeeklyReports();
   if(id==="stock")renderStock();
   if(id==="sendGoods"){if(!document.querySelector("#userShipItems .item-card"))addUserShipItem();refreshUserShipAgents();document.getElementById("userShipDate").value=new Date().toISOString().slice(0,10)}
   if(id==="admin")renderAdmin();
@@ -570,6 +584,49 @@ function paymentRows(uid){
   return p.length?p.map(x=>`<div class="row"><span>${new Date(x.at).toLocaleDateString()}</span><b>${x.amount.toLocaleString()} AFN — ${x.kind}</b></div>`).join(""):'<div class="empty">تراوسه تادیه نشته.</div>'
 }
 
+function weekBounds(dateLike){
+  const d=new Date(dateLike||Date.now()); d.setHours(0,0,0,0);
+  const day=d.getDay(); // 6=Saturday
+  const back=(day+1)%7;
+  const start=new Date(d); start.setDate(d.getDate()-back);
+  const end=new Date(start); end.setDate(start.getDate()+5); end.setHours(23,59,59,999);
+  return {start,end,key:start.toISOString().slice(0,10)};
+}
+function fmtDate(d){return new Date(d).toLocaleDateString("en-CA")}
+function allWeekKeys(){
+  const keys=new Set();
+  (db.orders||[]).forEach(o=>{const t=o.deliveredAt||o.createdAt;if(t)keys.add(weekBounds(t).key)});
+  (db.shipments||[]).forEach(x=>{const t=x.createdAt||x.date;if(t)keys.add(weekBounds(t).key)});
+  (db.payments||[]).forEach(x=>{if(x.at)keys.add(weekBounds(x.at).key)});
+  keys.add(weekBounds().key); return [...keys].sort().reverse();
+}
+function userWeekStats(uid,key){
+  const wb=weekBounds(key+"T12:00:00"), inw=t=>{if(!t)return false;const d=new Date(t);return d>=wb.start&&d<=wb.end};
+  const orders=(db.orders||[]).filter(o=>o.status==="delivered"&&inw(o.deliveredAt||o.createdAt));
+  const asOrder=orders.filter(o=>o.orderAgentId===uid), asDelivery=orders.filter(o=>o.deliveryAgentId===uid);
+  const units=a=>a.reduce((s,o)=>s+(o.items||[]).reduce((q,i)=>q+(+i.qty||0),0),0);
+  const orderUnits=units(asOrder), deliveryUnits=units(asDelivery);
+  const received=(db.shipments||[]).filter(x=>x.agentId===uid&&inw(x.createdAt||x.date));
+  const sent=(db.shipments||[]).filter(x=>x.senderId===uid&&inw(x.createdAt||x.date));
+  return {wb,orderUnits,deliveryUnits,commission:(orderUnits+deliveryUnits)*100,orders:asOrder.length,deliveries:asDelivery.length,received,sent};
+}
+function reportCard(u,key){
+  const r=userWeekStats(u.id,key), itemCount=a=>a.reduce((s,x)=>s+(x.items||[]).reduce((q,i)=>q+(+i.qty||0),0),0);
+  return `<div class="card" style="margin-bottom:12px"><h3>${esc(u.name)}</h3><div class="muted">${fmtDate(r.wb.start)} — ${fmtDate(r.wb.end)} (شنبه تر پنجشنبې)</div>
+  <div class="row"><span>Order تسلیم شوي جنسونه</span><b>${r.orderUnits}</b></div><div class="row"><span>Delivery تسلیم شوي جنسونه</span><b>${r.deliveryUnits}</b></div>
+  <div class="row"><span>د هفتې کمېشن</span><b>${r.commission.toLocaleString()} AFN</b></div><div class="row"><span>ترلاسه شوي جنسونه</span><b>${itemCount(r.received)}</b></div><div class="row"><span>لېږل شوي جنسونه</span><b>${itemCount(r.sent)}</b></div></div>`;
+}
+function renderWeeklyReport(){
+  const box=document.getElementById("weeklyReportView"),u=currentUser(); if(!box)return;
+  if(!u){box.innerHTML='<div class="card empty">لومړی Login وکړئ.</div>';return}
+  box.innerHTML=allWeekKeys().map(k=>reportCard(u,k)).join("");
+}
+function renderAdminWeeklyReports(){
+  const box=document.getElementById("adminWeeklyReportsView");if(!box)return;
+  const users=(db.users||[]).filter(u=>u.approved); const keys=allWeekKeys();
+  box.innerHTML=keys.map(k=>{const wb=weekBounds(k+"T12:00:00");return `<div class="card" style="margin-bottom:14px"><h2>هفته: ${fmtDate(wb.start)} — ${fmtDate(wb.end)}</h2>${users.length?users.map(u=>reportCard(u,k)).join(""):'<div class="empty">کس نشته.</div>'}</div>`}).join("");
+}
+
 const ADMIN_EMAIL="nk6341350@gmail.com";
 const ADMIN_PASSWORD="Khan4455";
 function openOwner(){document.getElementById("ownerModal").classList.add("on")}
@@ -582,6 +639,8 @@ function renderAdmin(){
   <div class="card tile" onclick="go('adminAgents')"><div class="ico">👥</div><b>${approved.length}</b><small>ټول تایید شوي</small></div>
   <div class="card tile" onclick="go('adminShip')"><div class="ico">📦</div><b>جنس</b><small>ولېږه</small></div>
   <div class="card tile" onclick="go('adminAccounts')"><div class="ico">💰</div><b>${unpaid.toLocaleString()} AFN</b><small>نا تادیه کمېشن</small></div>
+  <div class="card tile" onclick="go('adminWeeklyReports')"><div class="ico">📊</div><b>هفتني راپورونه</b><small>د ټولو کسانو</small></div>
+  <div class="card tile" onclick="go('adminSentGoods')"><div class="ico">📋</div><b>لېږل شوي جنسونه</b><small>چا ته څه لېږل شوي</small></div>
   </div>`
 }
 function renderApprovals(){
