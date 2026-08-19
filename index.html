@@ -164,6 +164,20 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
     <div id="stockView"></div>
   </section>
 
+  <section id="sendGoods" class="section">
+    <div class="head"><h2>📦 جنس لېږل</h2><button class="soft" onclick="go('home')">بېرته</button></div>
+    <div class="note"><strong>ځانګړی صلاحیت:</strong> یوازې هغه کس جنس لېږلای شي چې Super Admin ورته د جنس لېږلو اجازه فعاله کړې وي. عادي Delivery والا دا اختیار نه لري.</div>
+    <form class="card formgrid" onsubmit="createUserShipment(event)">
+      <label>ولایت<select id="userShipProvince" class="provinceSelect" onchange="refreshUserShipAgents()" required></select></label>
+      <label>Delivery Agent<select id="userShipAgent" required></select></label>
+      <div class="full" id="userShipItems"></div>
+      <button type="button" class="soft full" onclick="addUserShipItem()">＋ بل قلم جنس اضافه کړه</button>
+      <label>نېټه<input id="userShipDate" type="date" required></label>
+      <label>یادښت<input id="userShipNote"></label>
+      <button class="gold full">جنس ولېږه</button>
+    </form>
+  </section>
+
   <section id="admin" class="section">
     <div class="head"><h2>🔐 Super Admin</h2><button class="soft" onclick="go('home')">بېرته</button></div>
     <div class="note"><strong>مالک برخه:</strong> دا برخه په عادي Agent حالت کې نه ښکاري. اصلي خوندي کول به د Database/Auth په پړاو کې بشپړېږي.</div>
@@ -329,10 +343,11 @@ async function startCloud(){
 }
 function setSession(s){session=s;sessionStorage.setItem("ids_session",JSON.stringify(s));renderHome()}
 function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
-function go(id){if(id==="admin"&&(!session||session.type!=="admin"))return openOwner();if(id==="order"&&!canOrder())return toast("تاسې د Order Agent صلاحیت نه لرئ");if((id==="delivery"||id==="stock")&&!canDeliver())return toast("تاسې د Delivery Agent صلاحیت نه لرئ");if(id==="commission"&&!session)return toast("لومړی خپل حساب ته داخل شئ");document.querySelectorAll(".section").forEach(s=>s.classList.remove("on"));document.getElementById(id).classList.add("on");window.scrollTo(0,0);renderSection(id)}
+function go(id){if(id==="admin"&&(!session||session.type!=="admin"))return openOwner();if(id==="sendGoods"&&!canSendGoods())return toast("تاسې د جنس لېږلو صلاحیت نه لرئ");if(id==="order"&&!canOrder())return toast("تاسې د Order Agent صلاحیت نه لرئ");if((id==="delivery"||id==="stock")&&!canDeliver())return toast("تاسې د Delivery Agent صلاحیت نه لرئ");if(id==="commission"&&!session)return toast("لومړی خپل حساب ته داخل شئ");document.querySelectorAll(".section").forEach(s=>s.classList.remove("on"));document.getElementById(id).classList.add("on");window.scrollTo(0,0);renderSection(id)}
 function currentUser(){return session&&session.type==="user"?db.users.find(u=>u.id===session.userId):null}
 function canOrder(){const u=currentUser();return !!u&&u.approved&&(u.role==="order"||u.role==="both")}
 function canDeliver(){const u=currentUser();return !!u&&u.approved&&(u.role==="delivery"||u.role==="both")}
+function canSendGoods(){const u=currentUser();return !!u&&u.approved&&u.canSendGoods===true}
 function fillProvinces(){document.querySelectorAll(".provinceSelect").forEach(s=>{if(s.options.length)return;P.forEach(p=>s.add(new Option(p,p)))})}
 function renderHome(){
   fillProvinces();
@@ -375,6 +390,7 @@ function renderHome(){
       a.push(["🚚","زما ډیلیوري","Delivery Agent","delivery"]);
       a.push(["📦","زما موجودي","ډېر قلمونه","stock"]);
     }
+    if(canSendGoods()) a.push(["📤","جنس لېږل","ځانګړی صلاحیت","sendGoods"]);
     a.push(["🚪","وتل","له حسابه","logout"]);
   }
 
@@ -388,6 +404,7 @@ function renderSection(id){
   if(id==="delivery")renderDelivery();
   if(id==="commission")renderCommission();
   if(id==="stock")renderStock();
+  if(id==="sendGoods"){if(!document.querySelector("#userShipItems .item-card"))addUserShipItem();refreshUserShipAgents();document.getElementById("userShipDate").value=new Date().toISOString().slice(0,10)}
   if(id==="admin")renderAdmin();
   if(id==="adminApprovals")renderApprovals();
   if(id==="adminAgents")renderAgents();
@@ -490,7 +507,9 @@ function deliverOrder(id){
   save();toast(`تسلیم شو: ${units} جنسونه، Order ${100*units} AFN + Delivery ${100*units} AFN`);renderDelivery()
 }
 function getStock(uid){
-  const s={};db.shipments.filter(x=>x.agentId===uid&&x.confirmed).forEach(sh=>sh.items.forEach(i=>s[i.name]=(s[i.name]||0)+i.qty));
+  const s={};
+  db.shipments.filter(x=>x.agentId===uid&&x.confirmed).forEach(sh=>sh.items.forEach(i=>s[i.name]=(s[i.name]||0)+i.qty));
+  db.shipments.filter(x=>x.senderId===uid).forEach(sh=>sh.items.forEach(i=>s[i.name]=(s[i.name]||0)-i.qty));
   db.orders.filter(o=>o.deliveryAgentId===uid&&o.status==="delivered").forEach(o=>o.items.forEach(i=>s[i.name]=(s[i.name]||0)-i.qty));
   return s
 }
@@ -499,7 +518,7 @@ function renderStock(){
   const u=currentUser(), stock=getStock(u?.id), box=document.getElementById("stockView");
   const pending=db.shipments.filter(x=>x.agentId===u?.id&&!x.confirmed);
   let h="";
-  if(pending.length)h+=pending.map(sh=>`<div class="card" style="margin-bottom:12px"><span class="pill">نوی لېږد</span><h3>${sh.id}</h3>${sh.items.map(i=>`<div class="row"><b>${i.name}</b><span>${i.qty} دانې</span></div>`).join("")}<button class="gold" onclick="confirmShipment('${sh.id}')">جنس مې ترلاسه کړ</button></div>`).join("");
+  if(pending.length)h+=pending.map(sh=>`<div class="card" style="margin-bottom:12px"><span class="pill">نوی لېږد</span><h3>${sh.id}</h3>${sh.senderName?`<div class="muted">لېږونکی: ${sh.senderName}</div>`:""}${sh.items.map(i=>`<div class="row"><b>${i.name}</b><span>${i.qty} دانې</span></div>`).join("")}<button class="gold" onclick="confirmShipment('${sh.id}')">جنس مې ترلاسه کړ</button></div>`).join("");
   const keys=Object.keys(stock).filter(k=>stock[k]!==0);
   h+=`<div class="card"><h3>فعاله موجودي</h3>${keys.length?keys.map(k=>`<div class="row"><b>${k}</b><span>${stock[k]} دانې</span></div>`).join(""):'<div class="empty">فعاله موجودي نشته.</div>'}</div>`;
   box.innerHTML=h
@@ -544,7 +563,13 @@ function approveUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;u.appr
 function rejectUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;u.rejected=true;save();toast("غوښتنه رد شوه");renderApprovals()}
 function renderAgents(){
   const a=db.users.filter(u=>u.approved), box=document.getElementById("agentsList");
-  box.innerHTML=a.length?a.map(u=>`<div class="card" style="margin-bottom:12px"><div class="agentline"><div class="avatar">👤</div><div><h3>${u.name}</h3><div class="muted">${u.province} • ${u.district}</div><div class="rolebadges"><span class="rolebadge ${u.role==="both"?"both":""}">${roleName(u.role)}</span></div></div></div><div class="row"><span>موبایل</span><b>${u.phone}</b></div></div>`).join(""):'<div class="card empty">تایید شوی کس نشته.</div>'
+  box.innerHTML=a.length?a.map(u=>`<div class="card" style="margin-bottom:12px"><div class="agentline"><div class="avatar">👤</div><div><h3>${u.name}</h3><div class="muted">${u.province} • ${u.district}</div><div class="rolebadges"><span class="rolebadge ${u.role==="both"?"both":""}">${roleName(u.role)}</span>${u.canSendGoods?'<span class="rolebadge both">📦 د جنس لېږلو اجازه</span>':''}</div></div></div><div class="row"><span>موبایل</span><b>${u.phone}</b></div><div class="actions"><button class="${u.canSendGoods?'danger':'gold'}" onclick="toggleSendGoods('${u.id}')">${u.canSendGoods?'د جنس لېږلو اجازه بنده کړه':'د جنس لېږلو اجازه فعاله کړه'}</button></div></div>`).join(""):'<div class="card empty">تایید شوی کس نشته.</div>'
+}
+function toggleSendGoods(id){
+  const u=db.users.find(x=>x.id===id);if(!u)return;
+  u.canSendGoods=!u.canSendGoods;save();
+  toast(u.canSendGoods?u.name+" ته د جنس لېږلو اجازه فعاله شوه":u.name+" څخه د جنس لېږلو اجازه واخیستل شوه");
+  renderAgents()
 }
 function renderAdminAccounts(){
   const box=document.getElementById("adminAccountsList"), a=db.users.filter(u=>u.approved);
@@ -557,6 +582,26 @@ function payCommission(uid,kind,amount){
   const u=db.users.find(x=>x.id===uid);if(!u||amount<=0)return;if(!confirm(`${u.name} ته ${amount} AFN ورکړل شول؟`))return;
   if(kind==="order")u.orderPaid=(u.orderPaid||0)+amount;else u.deliveryPaid=(u.deliveryPaid||0)+amount;
   db.payments.push({id:"P"+Date.now(),userId:uid,kind,amount,at:new Date().toISOString()});save();toast("تادیه ثبت شوه؛ اوسنی حساب صفر شو");renderAdminAccounts()
+}
+function refreshUserShipAgents(){
+  const p=document.getElementById("userShipProvince").value,s=document.getElementById("userShipAgent"),me=currentUser();
+  const a=db.users.filter(u=>u.approved&&u.id!==me?.id&&u.province===p&&(u.role==="delivery"||u.role==="both"));s.innerHTML="";
+  if(!a.length){s.add(new Option("په دې ولایت کې Delivery Agent نشته",""));s.disabled=true}else{a.forEach(u=>s.add(new Option(`${u.name} — ${roleName(u.role)}`,u.id)));s.disabled=false}
+}
+function addUserShipItem(){
+  const stock=getStock(currentUser()?.id),names=Object.keys(stock).filter(k=>stock[k]>0),d=document.createElement("div");d.className="item-card";
+  d.innerHTML=`<label>جنس<select class="usi-name" required>${names.length?names.map(n=>`<option value="${n}">${n} — موجود ${stock[n]}</option>`).join(""):'<option value="">موجودي نشته</option>'}</select></label><label>تعداد<input class="usi-qty" type="number" min="1" required></label><button type="button" class="danger" onclick="this.parentElement.remove()">حذف</button>`;
+  document.getElementById("userShipItems").appendChild(d)
+}
+function createUserShipment(e){
+  e.preventDefault();const me=currentUser();if(!me||!canSendGoods())return toast("د جنس لېږلو صلاحیت نه لرئ");
+  const aid=document.getElementById("userShipAgent").value;if(!aid)return toast("Delivery Agent انتخاب کړئ");
+  const items=[...document.querySelectorAll("#userShipItems .item-card")].map(d=>({name:d.querySelector(".usi-name").value,qty:+d.querySelector(".usi-qty").value}));
+  if(!items.length||items.some(i=>!i.name||i.qty<1))return toast("جنس او تعداد سم انتخاب کړئ");
+  const stock=getStock(me.id),need={};items.forEach(i=>need[i.name]=(need[i.name]||0)+i.qty);
+  for(const [name,qty] of Object.entries(need))if((stock[name]||0)<qty)return toast(`د ${name} موجودي کمه ده`);
+  db.shipments.push({id:"SHP-"+String(db.seq++).padStart(5,"0"),senderId:me.id,senderName:me.name,agentId:aid,province:document.getElementById("userShipProvince").value,items,date:document.getElementById("userShipDate").value,note:document.getElementById("userShipNote").value,confirmed:false,createdAt:new Date().toISOString()});
+  save();document.getElementById("userShipItems").innerHTML="";addUserShipItem();toast("جنس Delivery Agent ته واستول شو؛ د هغه د تایید په انتظار کې دی");go("stock")
 }
 function refreshShipAgents(){
   const p=document.getElementById("shipProvince").value,s=document.getElementById("shipAgent");const a=db.users.filter(u=>u.approved&&u.province===p&&(u.role==="delivery"||u.role==="both"));s.innerHTML="";
