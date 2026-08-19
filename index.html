@@ -59,9 +59,6 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
 .install-btn{background:var(--g);color:var(--n);border:1px solid #efcf7f;box-shadow:0 5px 14px rgba(7,38,64,.10)}
 
 
-/* Shop admin additions */
-.shop-product{display:grid;grid-template-columns:82px 1fr;gap:12px;align-items:start}.shop-product img{width:82px;height:82px;object-fit:cover;border-radius:14px;border:1px solid var(--line);background:#faf6ed}.shop-order{margin-top:10px}.shop-linkbox{word-break:break-all;background:#f8f2e5;border:1px dashed #d7a637;border-radius:12px;padding:10px;margin:10px 0}.shop-thumb-preview{width:110px;height:110px;object-fit:cover;border:1px solid var(--line);border-radius:14px;display:none;margin-top:8px}
-
 </style>
 </head>
 <body>
@@ -201,31 +198,6 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
     <div class="head"><h2>د ټولو کمېشن حساب</h2><button class="soft" onclick="go('admin')">بېرته</button></div>
     <div id="adminAccountsList"></div>
   </section>
-
-  
-
-  <section id="adminShop" class="section">
-    <div class="head"><h2>🛍️ د دوکان مدیریت</h2><button class="soft" onclick="go('admin')">بېرته</button></div>
-    <div class="card" style="margin-bottom:12px">
-      <b>د مشتریانو جلا دوکان لینک</b>
-      <div id="shopPublicLink" class="shop-linkbox"></div>
-      <div class="actions"><button class="gold" type="button" onclick="copyShopLink()">لینک کاپي کړه</button><button class="navy" type="button" onclick="openShopLink()">دوکان خلاص کړه</button></div>
-    </div>
-    <form class="card formgrid" id="shopProductForm" onsubmit="saveShopProduct(event)">
-      <input type="hidden" id="shopProductId">
-      <label>د جنس نوم<input id="shopProductName" required></label>
-      <label>قیمت (AFN)<input id="shopProductPrice" type="number" min="0" required></label>
-      <label class="full">د جنس معلومات<textarea id="shopProductDesc" placeholder="لنډ معلومات"></textarea></label>
-      <label>مسئول شاګرد<select id="shopProductAgent" onchange="shopAgentChanged()" required></select></label>
-      <label>د شاګرد WhatsApp<input id="shopProductWhatsapp" inputmode="tel" placeholder="0700..." required></label>
-      <label class="full">د جنس عکس<input id="shopProductImage" type="file" accept="image/*" onchange="previewShopImage(event)"><img id="shopImagePreview" class="shop-thumb-preview" alt="preview"></label>
-      <button class="gold full" id="shopProductSaveBtn">جنس دوکان ته اضافه کړه</button>
-      <button class="soft full hidden" type="button" id="shopProductCancelBtn" onclick="resetShopProductForm()">ایډیټ ختم کړه</button>
-    </form>
-    <div style="margin-top:14px"><h3>د دوکان اجناس</h3><div id="shopAdminProducts"></div></div>
-    <div style="margin-top:18px"><h3>د مشتریانو آرډرونه</h3><div id="shopAdminOrders"></div></div>
-  </section>
-
 <div class="install-box" id="installBox">
   <button class="install-btn" id="installAppBtn" type="button">📲 اپلیکیشن نصب</button>
   <div class="muted" id="installHelp" style="margin-top:7px"></div>
@@ -389,7 +361,6 @@ function renderHome(){
       ["✅","د تایید غوښتنې",pendingCount()+" انتظار","adminApprovals"],
       ["👥","ټول کسان","Agents","adminAgents"],
       ["💰","د ټولو حساب","کمېشن","adminAccounts"],
-      ["🛍️","دوکان","اجناس او آرډرونه","adminShop"],
       ["🚪","مالک وتل","Session ختمول","logout"]
     ];
   }else{
@@ -416,7 +387,6 @@ function renderSection(id){
   if(id==="adminApprovals")renderApprovals();
   if(id==="adminAgents")renderAgents();
   if(id==="adminAccounts")renderAdminAccounts();
-  if(id==="adminShop")renderAdminShop();
   if(id==="adminShip"){if(!document.querySelector("#shipItems .item-card"))addShipItem();refreshShipAgents();document.getElementById("shipDate").value=new Date().toISOString().slice(0,10)}
 }
 function roleName(r){return r==="order"?"Order Agent":r==="delivery"?"Delivery Agent":"Both"}
@@ -556,7 +526,6 @@ function renderAdmin(){
   <div class="card tile" onclick="go('adminAgents')"><div class="ico">👥</div><b>${approved.length}</b><small>ټول تایید شوي</small></div>
   <div class="card tile" onclick="go('adminShip')"><div class="ico">📦</div><b>جنس</b><small>ولېږه</small></div>
   <div class="card tile" onclick="go('adminAccounts')"><div class="ico">💰</div><b>${unpaid.toLocaleString()} AFN</b><small>نا تادیه کمېشن</small></div>
-  <div class="card tile" onclick="go('adminShop')"><div class="ico">🛍️</div><b>${(db.products||[]).length}</b><small>د دوکان اجناس</small></div>
   </div>`
 }
 function renderApprovals(){
@@ -593,55 +562,6 @@ function createShipment(e){
   const items=[...document.querySelectorAll("#shipItems .item-card")].map(d=>({name:d.querySelector(".si-name").value.trim(),qty:+d.querySelector(".si-qty").value}));
   db.shipments.push({id:"SHP-"+String(db.seq++).padStart(5,"0"),agentId:aid,province:document.getElementById("shipProvince").value,items,date:document.getElementById("shipDate").value,note:document.getElementById("shipNote").value,confirmed:false,createdAt:new Date().toISOString()});
   save();document.getElementById("shipItems").innerHTML="";addShipItem();toast("جنس ثبت او Delivery Agent ته واستول شو")
-}
-
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[c]))}
-function shopPublicUrl(){return new URL("shop.html",location.href).href}
-function copyShopLink(){const u=shopPublicUrl();navigator.clipboard?.writeText(u).then(()=>toast("د دوکان لینک کاپي شو")).catch(()=>prompt("لینک کاپي کړئ",u))}
-function openShopLink(){window.open(shopPublicUrl(),"_blank")}
-function shopAgentOptions(){
-  const sel=document.getElementById("shopProductAgent");if(!sel)return;
-  const old=sel.value;sel.innerHTML='<option value="">شاګرد انتخاب کړئ</option>';
-  db.users.filter(u=>u.approved&&(u.role==="order"||u.role==="both")).forEach(u=>sel.add(new Option(`${u.name} — ${u.phone||""}`,u.id)));
-  if(old)sel.value=old
-}
-function shopAgentChanged(){const u=db.users.find(x=>x.id===document.getElementById("shopProductAgent").value);if(u)document.getElementById("shopProductWhatsapp").value=u.phone||""}
-function previewShopImage(e){const f=e.target.files?.[0],im=document.getElementById("shopImagePreview");if(!f){im.style.display="none";return}const r=new FileReader();r.onload=()=>{im.src=r.result;im.style.display="block"};r.readAsDataURL(f)}
-async function compressShopImage(file){
-  if(!file)return "";
-  const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)});
-  const im=await new Promise((res,rej)=>{const x=new Image();x.onload=()=>res(x);x.onerror=rej;x.src=data});
-  const max=620,scale=Math.min(1,max/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*scale)),h=Math.max(1,Math.round(im.height*scale));
-  const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(im,0,0,w,h);
-  return c.toDataURL("image/jpeg",.58)
-}
-async function saveShopProduct(e){
-  e.preventDefault();
-  const id=document.getElementById("shopProductId").value||("PRD-"+Date.now());
-  const old=db.products.find(x=>x.id===id);
-  const agentId=document.getElementById("shopProductAgent").value,u=db.users.find(x=>x.id===agentId);
-  if(!u)return toast("مسئول شاګرد انتخاب کړئ");
-  const file=document.getElementById("shopProductImage").files?.[0];
-  let image=old?.image||""; if(file) image=await compressShopImage(file); if(!image)return toast("د جنس عکس انتخاب کړئ");
-  const obj={id,name:document.getElementById("shopProductName").value.trim(),price:+document.getElementById("shopProductPrice").value,description:document.getElementById("shopProductDesc").value.trim(),agentId,agentName:u.name,whatsapp:document.getElementById("shopProductWhatsapp").value.trim(),image,active:true,updatedAt:new Date().toISOString()};
-  const ix=db.products.findIndex(x=>x.id===id); if(ix>=0)db.products[ix]=obj;else db.products.push(obj);
-  save();resetShopProductForm();toast(ix>=0?"جنس ایډیټ شو":"جنس دوکان ته اضافه شو");renderAdminShop()
-}
-function editShopProduct(id){
-  const p=db.products.find(x=>x.id===id);if(!p)return;shopAgentOptions();
-  document.getElementById("shopProductId").value=p.id;document.getElementById("shopProductName").value=p.name;document.getElementById("shopProductPrice").value=p.price;document.getElementById("shopProductDesc").value=p.description||"";document.getElementById("shopProductAgent").value=p.agentId||"";document.getElementById("shopProductWhatsapp").value=p.whatsapp||"";
-  const im=document.getElementById("shopImagePreview");im.src=p.image;im.style.display="block";document.getElementById("shopProductSaveBtn").textContent="بدلونونه ثبت کړه";document.getElementById("shopProductCancelBtn").classList.remove("hidden");window.scrollTo(0,0)
-}
-function resetShopProductForm(){
-  document.getElementById("shopProductForm")?.reset();document.getElementById("shopProductId").value="";const im=document.getElementById("shopImagePreview");if(im){im.src="";im.style.display="none"}document.getElementById("shopProductSaveBtn").textContent="جنس دوکان ته اضافه کړه";document.getElementById("shopProductCancelBtn").classList.add("hidden");shopAgentOptions()
-}
-function deleteShopProduct(id){const p=db.products.find(x=>x.id===id);if(!p||!confirm(`«${p.name}» له دوکان څخه حذف شي؟`))return;db.products=db.products.filter(x=>x.id!==id);save();toast("جنس حذف شو");renderAdminShop()}
-function renderAdminShop(){
-  document.getElementById("shopPublicLink").textContent=shopPublicUrl();shopAgentOptions();
-  const pb=document.getElementById("shopAdminProducts"),arr=(db.products||[]).slice().reverse();
-  pb.innerHTML=arr.length?arr.map(p=>`<div class="card shop-product" style="margin-bottom:10px"><img src="${p.image}" alt=""><div><h3 style="margin:0 0 5px">${esc(p.name)}</h3><div class="money" style="font-size:20px">${(+p.price).toLocaleString()} AFN</div><div class="muted">مسئول: ${esc(p.agentName||"")} • WhatsApp: ${esc(p.whatsapp||"")}</div><div class="actions" style="margin-top:8px"><button class="soft" onclick="editShopProduct('${p.id}')">ایډیټ</button><button class="danger" onclick="deleteShopProduct('${p.id}')">حذف</button></div></div></div>`).join(""):'<div class="card empty">تر اوسه جنس نه دی پورته شوی.</div>';
-  const ob=document.getElementById("shopAdminOrders"),orders=(db.shopOrders||[]).slice().sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
-  ob.innerHTML=orders.length?orders.map(o=>`<div class="card shop-order"><span class="pill">${esc(o.id)}</span><h3>${esc(o.productName)} × ${o.qty}</h3><div class="row"><span>مشتری</span><b>${esc(o.customerName)}</b></div><div class="row"><span>موبایل</span><b>${esc(o.customerPhone)}</b></div><div class="row"><span>ادرس</span><b>${esc([o.province,o.district,o.address].filter(Boolean).join(" — "))}</b></div><div class="row"><span>مسئول شاګرد</span><b>${esc(o.agentName||"")}</b></div><div class="row"><span>ټول قیمت</span><b>${(+o.total).toLocaleString()} AFN</b></div></div>`).join(""):'<div class="card empty">تر اوسه د دوکان آرډر نشته.</div>'
 }
 
 function maybeOwnerShortcut(){
