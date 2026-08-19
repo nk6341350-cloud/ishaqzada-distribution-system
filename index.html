@@ -131,7 +131,7 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
   </section>
 
   <section id="order" class="section">
-    <div class="head"><h2>آرډر ثبتول</h2><button class="soft" onclick="go('home')">بېرته</button></div>
+    <div class="head"><h2>📝 آرډر لېږل</h2><button class="soft" onclick="go('home')">بېرته</button></div>
     <div class="note">Order Agent یا Both کس کولای شي د هر ولایت تایید شوي Delivery Agent/Both ته آرډر واستوي. که Both کس خپل آرډر خپله ډیلیوري کوي، خپل نوم انتخابولای شي.</div>
     <form class="card formgrid" onsubmit="createOrder(event)" id="orderForm">
       <label>Order Agent<input id="orderAgentName" readonly></label>
@@ -150,7 +150,7 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
   </section>
 
   <section id="delivery" class="section">
-    <div class="head"><h2>زما ډیلیوري</h2><button class="soft" onclick="go('home')">بېرته</button></div>
+    <div class="head"><h2>📥 آرډر راتلل</h2><button class="soft" onclick="go('home')">بېرته</button></div>
     <div id="deliveryOrders"></div>
   </section>
 
@@ -349,7 +349,7 @@ async function startCloud(){
     toast("Firebase سره اتصال ونه شو");
   }
 }
-function setSession(s){session=s;sessionStorage.setItem("ids_session",JSON.stringify(s));renderHome()}
+function setSession(s){session=s;localStorage.setItem("ids_session",JSON.stringify(s));renderHome()}
 function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
 function go(id){if(id==="admin"&&(!session||session.type!=="admin"))return openOwner();if(id==="sendGoods"&&!canSendGoods())return toast("تاسې د جنس لېږلو صلاحیت نه لرئ");if(id==="order"&&!canOrder())return toast("تاسې د Order Agent صلاحیت نه لرئ");if((id==="delivery"||id==="stock")&&!canDeliver())return toast("تاسې د Delivery Agent صلاحیت نه لرئ");if(id==="commission"&&!session)return toast("لومړی خپل حساب ته داخل شئ");document.querySelectorAll(".section").forEach(s=>s.classList.remove("on"));document.getElementById(id).classList.add("on");window.scrollTo(0,0);renderSection(id)}
 function currentUser(){return session&&session.type==="user"?db.users.find(u=>u.id===session.userId):null}
@@ -393,12 +393,11 @@ function renderHome(){
     ];
   }else{
     a=[["👤","زما حساب",u.name+" — "+roleName(u.role),"commission"]];
-    if(canOrder()) a.push(["📝","آرډر ثبتول","Order Agent","order"]);
+    if(canOrder()) a.push(["📝","آرډر لېږل","Order Agent","order"]);
     if(canDeliver()){
-      a.push(["🚚","زما ډیلیوري","Delivery Agent","delivery"]);
+      a.push(["📥","آرډر راتلل","Delivery Agent","delivery"]);
       a.push(["📦","زما موجودي","ډېر قلمونه","stock"]);
     }
-    if(canSendGoods()) a.push(["📤","جنس لېږل","ځانګړی صلاحیت","sendGoods"]);
     a.push(["🚪","وتل","له حسابه","logout"]);
   }
 
@@ -571,13 +570,13 @@ function approveUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;u.appr
 function rejectUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;u.rejected=true;save();toast("غوښتنه رد شوه");renderApprovals()}
 function renderAgents(){
   const a=db.users.filter(u=>u.approved), box=document.getElementById("agentsList");
-  box.innerHTML=a.length?a.map(u=>`<div class="card" style="margin-bottom:12px"><div class="agentline"><div class="avatar">👤</div><div><h3>${u.name}</h3><div class="muted">${u.province} • ${u.district}</div><div class="rolebadges"><span class="rolebadge ${u.role==="both"?"both":""}">${roleName(u.role)}</span>${u.canSendGoods?'<span class="rolebadge both">📦 د جنس لېږلو اجازه</span>':''}</div></div></div><div class="row"><span>موبایل</span><b>${u.phone}</b></div><div class="actions">
+  box.innerHTML=a.length?a.map(u=>`<div class="card" style="margin-bottom:12px"><div class="agentline"><div class="avatar">👤</div><div><h3>${u.name}</h3><div class="muted">${u.province} • ${u.district}</div><div class="rolebadges"><span class="rolebadge ${u.role==="both"?"both":""}">${roleName(u.role)}</span></div></div></div><div class="row"><span>موبایل</span><b>${u.phone}</b></div><div class="actions">
 <select onchange="changeUserRole('${u.id}',this.value)" style="min-width:170px">
   <option value="order" ${u.role==="order"?"selected":""}>Order Agent</option>
   <option value="delivery" ${u.role==="delivery"?"selected":""}>Delivery Agent</option>
   <option value="both" ${u.role==="both"?"selected":""}>Both / دواړه</option>
 </select>
-<button class="${u.canSendGoods?'danger':'gold'}" onclick="toggleSendGoods('${u.id}')">${u.canSendGoods?'د جنس لېږلو اجازه بنده کړه':'د جنس لېږلو اجازه فعاله کړه'}</button>
+
 </div></div>`).join(""):'<div class="card empty">تایید شوی کس نشته.</div>'
 }
 function changeUserRole(id,role){
@@ -732,7 +731,7 @@ function renderStudentPreview(){
  sel.innerHTML='<option value="">شاګرد انتخاب کړه</option>';students.forEach(u=>sel.add(new Option(`${u.name} — ${roleName(u.role)}`,u.id)));
  if(old&&students.some(u=>u.id===old))sel.value=old;const u=students.find(x=>x.id===sel.value);
  if(!u){box.innerHTML='<div class="card empty">یو شاګرد انتخاب کړه؛ بیا به د هغه صفحه ووینې.</div>';return}
- const tiles=[["👤","زما حساب",u.name+" — "+roleName(u.role)]];if(u.role==="order"||u.role==="both")tiles.push(["📝","آرډر ثبتول","Order Agent"]);if(u.role==="delivery"||u.role==="both")tiles.push(["🚚","د سپارلو برخه","Delivery"]);
+ const tiles=[["👤","زما حساب",u.name+" — "+roleName(u.role)]];if(u.role==="order"||u.role==="both")tiles.push(["📝","آرډر لېږل","Order Agent"]);if(u.role==="delivery"||u.role==="both")tiles.push(["📥","آرډر راتلل","Delivery"]);
  box.innerHTML=`<div class="card"><div class="agentline"><div class="avatar">👤</div><div><h3>${esc(u.name)}</h3><div class="muted">${esc(roleName(u.role))}</div></div></div></div><div class="grid" style="margin-top:12px">${tiles.map(x=>`<div class="card tile"><div class="ico">${x[0]}</div><b>${x[1]}</b><small>${x[2]}</small></div>`).join("")}</div><div class="card" style="margin-top:12px"><b>Preview Mode</b><div class="muted">یوازې د ښوولو لپاره؛ معلومات نه بدلېږي.</div></div>`;
 }
 function maybeOwnerShortcut(){
