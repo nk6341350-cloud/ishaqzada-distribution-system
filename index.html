@@ -340,16 +340,19 @@ function save(){
 
 
 function mergeById(localArr,remoteArr){
+  // Cloud is the shared source of truth for records that already exist there.
+  // This prevents an older phone's localStorage from overwriting newer
+  // commission/order/delivery values received from another phone.
   const m=new Map();
-  (remoteArr||[]).forEach(x=>{if(x&&x.id)m.set(x.id,x)});
-  (localArr||[]).forEach(x=>{
+  (localArr||[]).forEach(x=>{if(x&&x.id)m.set(x.id,x)});
+  (remoteArr||[]).forEach(x=>{
     if(!x||!x.id)return;
-    const old=m.get(x.id);
-    if(!old){m.set(x.id,x);return}
-    if("confirmed" in x || "confirmed" in old){
-      m.set(x.id,{...old,...x,confirmed:!!(old.confirmed||x.confirmed),confirmedAt:x.confirmedAt||old.confirmedAt||null});
+    const local=m.get(x.id);
+    if(!local){m.set(x.id,x);return}
+    if("confirmed" in x || "confirmed" in local){
+      m.set(x.id,{...local,...x,confirmed:!!(local.confirmed||x.confirmed),confirmedAt:x.confirmedAt||local.confirmedAt||null});
     }else{
-      m.set(x.id,{...old,...x});
+      m.set(x.id,{...local,...x});
     }
   });
   return [...m.values()];
