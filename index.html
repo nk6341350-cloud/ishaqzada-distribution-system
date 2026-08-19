@@ -571,7 +571,23 @@ function approveUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;u.appr
 function rejectUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;u.rejected=true;save();toast("غوښتنه رد شوه");renderApprovals()}
 function renderAgents(){
   const a=db.users.filter(u=>u.approved), box=document.getElementById("agentsList");
-  box.innerHTML=a.length?a.map(u=>`<div class="card" style="margin-bottom:12px"><div class="agentline"><div class="avatar">👤</div><div><h3>${u.name}</h3><div class="muted">${u.province} • ${u.district}</div><div class="rolebadges"><span class="rolebadge ${u.role==="both"?"both":""}">${roleName(u.role)}</span>${u.canSendGoods?'<span class="rolebadge both">📦 د جنس لېږلو اجازه</span>':''}</div></div></div><div class="row"><span>موبایل</span><b>${u.phone}</b></div><div class="actions"><button class="${u.canSendGoods?'danger':'gold'}" onclick="toggleSendGoods('${u.id}')">${u.canSendGoods?'د جنس لېږلو اجازه بنده کړه':'د جنس لېږلو اجازه فعاله کړه'}</button></div></div>`).join(""):'<div class="card empty">تایید شوی کس نشته.</div>'
+  box.innerHTML=a.length?a.map(u=>`<div class="card" style="margin-bottom:12px"><div class="agentline"><div class="avatar">👤</div><div><h3>${u.name}</h3><div class="muted">${u.province} • ${u.district}</div><div class="rolebadges"><span class="rolebadge ${u.role==="both"?"both":""}">${roleName(u.role)}</span>${u.canSendGoods?'<span class="rolebadge both">📦 د جنس لېږلو اجازه</span>':''}</div></div></div><div class="row"><span>موبایل</span><b>${u.phone}</b></div><div class="actions">
+<select onchange="changeUserRole('${u.id}',this.value)" style="min-width:170px">
+  <option value="order" ${u.role==="order"?"selected":""}>Order Agent</option>
+  <option value="delivery" ${u.role==="delivery"?"selected":""}>Delivery Agent</option>
+  <option value="both" ${u.role==="both"?"selected":""}>Both / دواړه</option>
+</select>
+<button class="${u.canSendGoods?'danger':'gold'}" onclick="toggleSendGoods('${u.id}')">${u.canSendGoods?'د جنس لېږلو اجازه بنده کړه':'د جنس لېږلو اجازه فعاله کړه'}</button>
+</div></div>`).join(""):'<div class="card empty">تایید شوی کس نشته.</div>'
+}
+function changeUserRole(id,role){
+  const u=db.users.find(x=>x.id===id);
+  if(!u)return;
+  if(!["order","delivery","both"].includes(role))return;
+  u.role=role;
+  save();
+  toast(u.name+" رول "+roleName(role)+" ته بدل شو");
+  renderAgents();
 }
 function toggleSendGoods(id){
   const u=db.users.find(x=>x.id===id);if(!u)return;
