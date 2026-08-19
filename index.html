@@ -804,7 +804,8 @@ function renderAdminSentGoods(){
     const u=(db.users||[]).find(x=>x.id===sh.agentId);
     const items=(sh.items||[]).map(i=>`${esc(i.name)} — ${i.qty}`).join("<br>");
     const st=sh.confirmed?'<span class="pill status-ok">ترلاسه شوی</span>':'<span class="pill status-pending">د تایید انتظار</span>';
-    return `<div class="card" style="margin-bottom:12px"><div class="row"><b>${esc(u?u.name:"نامعلوم کس")}</b>${st}</div><div class="muted">${esc(sh.province||"")} • ${esc(sh.date||"")}</div><div style="margin-top:10px">${items}</div>${sh.note?`<div class="muted" style="margin-top:8px">یادښت: ${esc(sh.note)}</div>`:""}</div>`;
+    const total=(sh.items||[]).reduce((n,i)=>n+(+i.qty||0),0);
+    return `<div class="card" style="margin-bottom:12px"><div class="row"><b>${esc(u?u.name:"نامعلوم کس")}</b>${st}</div><div class="muted">${esc(sh.id||"")} • ${esc(sh.province||"")} • ${esc(sh.date||"")}</div><div style="margin-top:10px">${items}</div><div class="row"><span>ټول تعداد</span><b>${total}</b></div>${sh.note?`<div class="muted" style="margin-top:8px">یادښت: ${esc(sh.note)}</div>`:""}</div>`;
   }).join("");
 }
 function refreshShipAgents(){
@@ -815,7 +816,7 @@ function addShipItem(){const d=document.createElement("div");d.className="item-c
 function createShipment(e){
   e.preventDefault();const aid=document.getElementById("shipAgent").value;if(!aid)return toast("Delivery Agent انتخاب کړئ");
   const items=[...document.querySelectorAll("#shipItems .item-card")].map(d=>({name:d.querySelector(".si-name").value.trim(),qty:+d.querySelector(".si-qty").value}));
-  db.shipments.push({id:"SHP-"+String(db.seq++).padStart(5,"0"),agentId:aid,province:document.getElementById("shipProvince").value,items,date:document.getElementById("shipDate").value,note:document.getElementById("shipNote").value,confirmed:false,createdAt:new Date().toISOString()});
+  db.shipments.push({id:"SHP-"+String(db.seq++).padStart(5,"0"),senderId:"SUPER_ADMIN",senderName:"Super Admin",agentId:aid,province:document.getElementById("shipProvince").value,items,date:document.getElementById("shipDate").value,note:document.getElementById("shipNote").value,confirmed:false,createdAt:new Date().toISOString()});
   save();document.getElementById("shipItems").innerHTML="";addShipItem();toast("جنس ثبت او Delivery Agent ته واستول شو")
 }
 
