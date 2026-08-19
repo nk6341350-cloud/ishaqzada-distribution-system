@@ -165,16 +165,24 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
   </section>
 
   <section id="sendGoods" class="section">
-    <div class="head"><h2>📦 جنس لېږل</h2><button class="soft" onclick="go('home')">بېرته</button></div>
-    <div class="note"><strong>ځانګړی صلاحیت:</strong> یوازې هغه کس جنس لېږلای شي چې Super Admin ورته د جنس لېږلو اجازه فعاله کړې وي. عادي Delivery والا دا اختیار نه لري.</div>
+    <div class="head"><h2>📦 جنس لېږل / آرډر</h2><button class="soft" onclick="go('home')">بېرته</button></div>
+    <div class="note"><strong>ځانګړی صلاحیت:</strong> یوازې هغه کس دا برخه کارولای شي چې Super Admin ورته د جنس لېږلو اجازه ورکړې وي. که رول یې Both وي، خپل ځان هم د Delivery لپاره انتخابولی شي.</div>
     <form class="card formgrid" onsubmit="createUserShipment(event)">
-      <label>ولایت<select id="userShipProvince" class="provinceSelect" onchange="refreshUserShipAgents()" required></select></label>
+      <label>د مشتری نوم<input id="userCustomerName" required></label>
+      <label>د مشتری موبایل نمبر<input id="userCustomerPhone" inputmode="tel" required></label>
+      <label>د مشتری ولایت<select id="userCustomerProvince" class="provinceSelect" required></select></label>
+      <label>د مشتری ولسوالۍ<input id="userCustomerDistrict" required></label>
+      <label class="full">د مشتری بشپړ ادرس<textarea id="userCustomerAddress" required></textarea></label>
+
+      <label>Delivery ولایت<select id="userShipProvince" class="provinceSelect" onchange="refreshUserShipAgents()" required></select></label>
       <label>Delivery Agent<select id="userShipAgent" required></select></label>
+
       <div class="full" id="userShipItems"></div>
       <button type="button" class="soft full" onclick="addUserShipItem()">＋ بل قلم جنس اضافه کړه</button>
+
       <label>نېټه<input id="userShipDate" type="date" required></label>
       <label>یادښت<input id="userShipNote"></label>
-      <button class="gold full">جنس ولېږه</button>
+      <button class="gold full">آرډر ثبت او Delivery ته ولېږه</button>
     </form>
   </section>
 
@@ -584,24 +592,111 @@ function payCommission(uid,kind,amount){
   db.payments.push({id:"P"+Date.now(),userId:uid,kind,amount,at:new Date().toISOString()});save();toast("تادیه ثبت شوه؛ اوسنی حساب صفر شو");renderAdminAccounts()
 }
 function refreshUserShipAgents(){
-  const p=document.getElementById("userShipProvince").value,s=document.getElementById("userShipAgent"),me=currentUser();
-  const a=db.users.filter(u=>u.approved&&u.id!==me?.id&&u.province===p&&(u.role==="delivery"||u.role==="both"));s.innerHTML="";
-  if(!a.length){s.add(new Option("په دې ولایت کې Delivery Agent نشته",""));s.disabled=true}else{a.forEach(u=>s.add(new Option(`${u.name} — ${roleName(u.role)}`,u.id)));s.disabled=false}
+  const p=document.getElementById("userShipProvince").value,
+        s=document.getElementById("userShipAgent"),
+        me=currentUser();
+  const a=db.users.filter(u=>
+    u.approved &&
+    u.province===p &&
+    (u.role==="delivery"||u.role==="both") &&
+    (u.id!==me?.id || me?.role==="both")
+  );
+  s.innerHTML="";
+  if(!a.length){
+    s.add(new Option("په دې ولایت کې Delivery Agent نشته",""));
+    s.disabled=true;
+  }else{
+    a.forEach(u=>s.add(new Option(
+      `${u.name} — ${roleName(u.role)}${u.id===me?.id?" — خپل ځان":""}`,
+      u.id
+    )));
+    s.disabled=false;
+  }
 }
 function addUserShipItem(){
-  const stock=getStock(currentUser()?.id),names=Object.keys(stock).filter(k=>stock[k]>0),d=document.createElement("div");d.className="item-card";
-  d.innerHTML=`<label>جنس<select class="usi-name" required>${names.length?names.map(n=>`<option value="${n}">${n} — موجود ${stock[n]}</option>`).join(""):'<option value="">موجودي نشته</option>'}</select></label><label>تعداد<input class="usi-qty" type="number" min="1" required></label><button type="button" class="danger" onclick="this.parentElement.remove()">حذف</button>`;
-  document.getElementById("userShipItems").appendChild(d)
+  const stock=getStock(currentUser()?.id),
+        names=Object.keys(stock).filter(k=>stock[k]>0),
+        d=document.createElement("div");
+  d.className="item-card";
+  d.innerHTML=`<label>جنس<select class="usi-name" required>
+    ${names.length?names.map(n=>`<option value="${n}">${n} — موجود ${stock[n]}</option>`).join(""):'<option value="">موجودي نشته</option>'}
+  </select></label>
+  <label>تعداد<input class="usi-qty" type="number" min="1" required></label>
+  <label>د یوه جنس قیمت (AFN)<input class="usi-price" type="number" min="0" required></label>
+  <button type="button" class="danger" onclick="this.parentElement.remove()">حذف</button>`;
+  document.getElementById("userShipItems").appendChild(d);
 }
 function createUserShipment(e){
-  e.preventDefault();const me=currentUser();if(!me||!canSendGoods())return toast("د جنس لېږلو صلاحیت نه لرئ");
-  const aid=document.getElementById("userShipAgent").value;if(!aid)return toast("Delivery Agent انتخاب کړئ");
-  const items=[...document.querySelectorAll("#userShipItems .item-card")].map(d=>({name:d.querySelector(".usi-name").value,qty:+d.querySelector(".usi-qty").value}));
-  if(!items.length||items.some(i=>!i.name||i.qty<1))return toast("جنس او تعداد سم انتخاب کړئ");
-  const stock=getStock(me.id),need={};items.forEach(i=>need[i.name]=(need[i.name]||0)+i.qty);
-  for(const [name,qty] of Object.entries(need))if((stock[name]||0)<qty)return toast(`د ${name} موجودي کمه ده`);
-  db.shipments.push({id:"SHP-"+String(db.seq++).padStart(5,"0"),senderId:me.id,senderName:me.name,agentId:aid,province:document.getElementById("userShipProvince").value,items,date:document.getElementById("userShipDate").value,note:document.getElementById("userShipNote").value,confirmed:false,createdAt:new Date().toISOString()});
-  save();document.getElementById("userShipItems").innerHTML="";addUserShipItem();toast("جنس Delivery Agent ته واستول شو؛ د هغه د تایید په انتظار کې دی");go("stock")
+  e.preventDefault();
+  const me=currentUser();
+  if(!me||!canSendGoods())return toast("د جنس لېږلو صلاحیت نه لرئ");
+
+  const aid=document.getElementById("userShipAgent").value;
+  if(!aid)return toast("Delivery Agent انتخاب کړئ");
+
+  const items=[...document.querySelectorAll("#userShipItems .item-card")].map(d=>({
+    name:d.querySelector(".usi-name").value,
+    qty:+d.querySelector(".usi-qty").value,
+    price:+d.querySelector(".usi-price").value
+  }));
+  if(!items.length||items.some(i=>!i.name||i.qty<1||i.price<0))
+    return toast("جنس، تعداد او قیمت سم ولیکئ");
+
+  const stock=getStock(me.id),need={};
+  items.forEach(i=>need[i.name]=(need[i.name]||0)+i.qty);
+  for(const [name,qty] of Object.entries(need))
+    if((stock[name]||0)<qty)return toast(`د ${name} موجودي کمه ده`);
+
+  const oid="ORD-"+String(db.seq++).padStart(5,"0");
+  const order={
+    id:oid,
+    orderAgentId:me.id,
+    deliveryAgentId:aid,
+    customer:document.getElementById("userCustomerName").value.trim(),
+    phone:document.getElementById("userCustomerPhone").value.trim(),
+    province:document.getElementById("userCustomerProvince").value,
+    district:document.getElementById("userCustomerDistrict").value.trim(),
+    area:"",
+    address:document.getElementById("userCustomerAddress").value.trim(),
+    items,
+    status:"new",
+    note:document.getElementById("userShipNote").value.trim(),
+    createdAt:new Date().toISOString(),
+    deliveredAt:null
+  };
+  db.orders.push(order);
+
+  // که بل Delivery کس وي، جنس ورته د تایید لپاره ولېږه.
+  // که خپل ځان وي، موجودي لا له مخکې ورسره ده، نو جلا انتقال ته اړتیا نشته.
+  if(aid!==me.id){
+    db.shipments.push({
+      id:"SHP-"+String(db.seq++).padStart(5,"0"),
+      senderId:me.id,
+      senderName:me.name,
+      agentId:aid,
+      province:document.getElementById("userShipProvince").value,
+      items:items.map(i=>({name:i.name,qty:i.qty})),
+      date:document.getElementById("userShipDate").value,
+      note:`${oid} — ${order.customer}`,
+      confirmed:false,
+      orderId:oid,
+      createdAt:new Date().toISOString()
+    });
+  }
+
+  save();
+  e.target.reset();
+  document.getElementById("userShipItems").innerHTML="";
+  fillProvinces();
+  addUserShipItem();
+
+  if(aid===me.id){
+    toast("آرډر خپل ځان ته ثبت شو. چې مشتری ته یې تسلیم کړې، Order 100 + Delivery 100 AFN حسابېږي.");
+    go("delivery");
+  }else{
+    toast("آرډر ثبت او Delivery Agent ته واستول شو؛ جنس باید هغه کس تایید کړي.");
+    go("home");
+  }
 }
 function refreshShipAgents(){
   const p=document.getElementById("shipProvince").value,s=document.getElementById("shipAgent");const a=db.users.filter(u=>u.approved&&u.province===p&&(u.role==="delivery"||u.role==="both"));s.innerHTML="";
