@@ -198,6 +198,10 @@ nav button{background:transparent;color:white;font-size:12px;padding:5px 7px}.na
     <div class="head"><h2>د ټولو کمېشن حساب</h2><button class="soft" onclick="go('admin')">بېرته</button></div>
     <div id="adminAccountsList"></div>
   </section>
+<section id="studentPreview" class="section">
+<div class="head"><h2>👤 د شاګرد صفحه</h2><button class="soft" onclick="go('admin')">بېرته</button></div>
+<div class="card"><p class="muted">دا یوازې Preview دی؛ ستا Super Admin حساب نه بدلېږي.</p><label>شاګرد انتخاب کړه<select id="previewStudentSelect" onchange="renderStudentPreview()"></select></label></div>
+<div id="studentPreviewBody" style="margin-top:12px"></div></section>
 <div class="install-box" id="installBox">
   <button class="install-btn" id="installAppBtn" type="button">📲 اپلیکیشن نصب</button>
   <div class="muted" id="installHelp" style="margin-top:7px"></div>
@@ -360,6 +364,7 @@ function renderHome(){
       ["📦","جنس لېږل","Admin → Delivery","adminShip"],
       ["✅","د تایید غوښتنې",pendingCount()+" انتظار","adminApprovals"],
       ["👥","ټول کسان","Agents","adminAgents"],
+      ["👤","د شاګرد صفحه وګوره","Preview","studentPreview"],
       ["💰","د ټولو حساب","کمېشن","adminAccounts"],
       ["🚪","مالک وتل","Session ختمول","logout"]
     ];
@@ -387,6 +392,7 @@ function renderSection(id){
   if(id==="adminApprovals")renderApprovals();
   if(id==="adminAgents")renderAgents();
   if(id==="adminAccounts")renderAdminAccounts();
+  if(id==="studentPreview")renderStudentPreview();
   if(id==="adminShip"){if(!document.querySelector("#shipItems .item-card"))addShipItem();refreshShipAgents();document.getElementById("shipDate").value=new Date().toISOString().slice(0,10)}
 }
 function roleName(r){return r==="order"?"Order Agent":r==="delivery"?"Delivery Agent":"Both"}
@@ -564,6 +570,15 @@ function createShipment(e){
   save();document.getElementById("shipItems").innerHTML="";addShipItem();toast("جنس ثبت او Delivery Agent ته واستول شو")
 }
 
+function renderStudentPreview(){
+ const sel=document.getElementById("previewStudentSelect"),box=document.getElementById("studentPreviewBody");if(!sel||!box)return;
+ const students=(db.users||[]).filter(u=>u.approved&&u.role!=="admin"),old=sel.value;
+ sel.innerHTML='<option value="">شاګرد انتخاب کړه</option>';students.forEach(u=>sel.add(new Option(`${u.name} — ${roleName(u.role)}`,u.id)));
+ if(old&&students.some(u=>u.id===old))sel.value=old;const u=students.find(x=>x.id===sel.value);
+ if(!u){box.innerHTML='<div class="card empty">یو شاګرد انتخاب کړه؛ بیا به د هغه صفحه ووینې.</div>';return}
+ const tiles=[["👤","زما حساب",u.name+" — "+roleName(u.role)]];if(u.role==="order"||u.role==="both")tiles.push(["📝","آرډر ثبتول","Order Agent"]);if(u.role==="delivery"||u.role==="both")tiles.push(["🚚","د سپارلو برخه","Delivery"]);
+ box.innerHTML=`<div class="card"><div class="agentline"><div class="avatar">👤</div><div><h3>${esc(u.name)}</h3><div class="muted">${esc(roleName(u.role))}</div></div></div></div><div class="grid" style="margin-top:12px">${tiles.map(x=>`<div class="card tile"><div class="ico">${x[0]}</div><b>${x[1]}</b><small>${x[2]}</small></div>`).join("")}</div><div class="card" style="margin-top:12px"><b>Preview Mode</b><div class="muted">یوازې د ښوولو لپاره؛ معلومات نه بدلېږي.</div></div>`;
+}
 function maybeOwnerShortcut(){
   // Owner mode: open the same site with ?owner=1. Normal link never shows Admin.
   const q=new URLSearchParams(location.search); if(q.get("owner")==="1") setTimeout(openOwner,250)
