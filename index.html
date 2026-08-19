@@ -349,10 +349,21 @@ async function startCloud(){
     toast("Firebase سره اتصال ونه شو");
   }
 }
-function setSession(s){session=s;localStorage.setItem("ids_session",JSON.stringify(s));renderHome()}
+function setSession(s){
+  session=s;
+  localStorage.setItem("ids_session",JSON.stringify(s));
+  if(s&&s.type==="user") localStorage.setItem("ids_last_user",JSON.stringify({userId:s.userId,email:s.email||""}));
+  renderHome()
+}
 function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
 function go(id){if(id==="admin"&&(!session||session.type!=="admin"))return openOwner();if(id==="sendGoods"&&!canSendGoods())return toast("تاسې د جنس لېږلو صلاحیت نه لرئ");if(id==="order"&&!canOrder())return toast("تاسې د Order Agent صلاحیت نه لرئ");if((id==="delivery"||id==="stock")&&!canDeliver())return toast("تاسې د Delivery Agent صلاحیت نه لرئ");if(id==="commission"&&!session)return toast("لومړی خپل حساب ته داخل شئ");document.querySelectorAll(".section").forEach(s=>s.classList.remove("on"));document.getElementById(id).classList.add("on");window.scrollTo(0,0);renderSection(id)}
-function currentUser(){return session&&session.type==="user"?db.users.find(u=>u.id===session.userId):null}
+function currentUser(){
+  if(!session||session.type!=="user") return null;
+  let u=db.users.find(x=>x.id===session.userId);
+  if(!u&&session.email) u=db.users.find(x=>(x.email||"").toLowerCase()===session.email.toLowerCase());
+  if(u&&session.userId!==u.id){session.userId=u.id;localStorage.setItem("ids_session",JSON.stringify(session));}
+  return u||null;
+}
 function canOrder(){const u=currentUser();return !!u&&u.approved&&(u.role==="order"||u.role==="both")}
 function canDeliver(){const u=currentUser();return !!u&&u.approved&&(u.role==="delivery"||u.role==="both")}
 function canSendGoods(){const u=currentUser();return !!u&&u.approved&&u.canSendGoods===true}
@@ -444,7 +455,7 @@ function loginGuest(e){
   if(u.rejected) return toast("ستاسې حساب رد شوی");
   if(!u.approved) return toast("ستاسې حساب لا د Admin تایید ته منتظر دی");
 
-  setSession({type:"user",userId:u.id});
+  setSession({type:"user",userId:u.id,email:u.email});
   toast("ښه راغلاست "+u.name);
   go("home");
 }
@@ -466,7 +477,7 @@ function loginUser(e){
   if(!u)return toast("ایمیل یا پاسورډ سم نه دی");
   if(u.rejected)return toast("ستاسې حساب رد شوی");
   if(!u.approved)return toast("ستاسې حساب لا د Admin تایید ته منتظر دی");
-  setSession({type:"user",userId:u.id});
+  setSession({type:"user",userId:u.id,email:u.email});
   toast("ښه راغلاست "+u.name);
   go("home");
 }
@@ -475,10 +486,14 @@ function pendingCount(){return db.users.filter(u=>!u.approved&&!u.rejected).leng
 
 function refreshDeliveryChoices(){
   const p=document.getElementById("customerProvince").value, s=document.getElementById("deliveryAgentSelect");
-  const list=db.users.filter(u=>u.approved&&u.province===p&&(u.role==="delivery"||u.role==="both"));
+  let list=db.users.filter(u=>u.approved&&u.province===p&&(u.role==="delivery"||u.role==="both"));
+  const me=currentUser();
+  if(me&&me.approved&&me.role==="both"&&me.province===p){
+    list=[me,...list.filter(u=>u.id!==me.id)];
+  }
   s.innerHTML="";
   if(!list.length){s.add(new Option("په دې ولایت کې تایید شوی ډیلیوري والا نشته",""));s.disabled=true}
-  else{list.forEach(u=>s.add(new Option(`${u.name} — ${u.province}${u.role==="both"?" — Both":""}`,u.id)));s.disabled=false}
+  else{list.forEach(u=>s.add(new Option(`${u.name}${u.id===me?.id?" — زه":""} — ${u.province}${u.role==="both"?" — Both":""}`,u.id)));s.disabled=false}
 }
 function addOrderItem(){
   const d=document.createElement("div");d.className="item-card";
